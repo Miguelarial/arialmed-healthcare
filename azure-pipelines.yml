@@ -16,16 +16,17 @@ variables:
 
 stages: 
   - stage: tfvalidate
+    displayName: "Terraform Validation"
     jobs:
       - job: validate
-        continueOnError: false
+        displayName: "Validate Terraform Configuration"
         steps:
           - task: TerraformInstaller@1
-            displayName: tfinstall
+            displayName: "Install Terraform"
             inputs:
               terraformVersion: 'latest'
           - task: TerraformTaskV4@4
-            displayName: init
+            displayName: "Initialize Terraform"
             inputs:
               provider: 'azurerm'
               command: 'init'
@@ -35,22 +36,25 @@ stages:
               backendAzureRmContainerName: '$(bkcontainer)'
               backendAzureRmKey: '$(bkstrgkey)'
           - task: TerraformTaskV4@4
-            displayName: validate
+            displayName: "Validate Terraform"
             inputs:
               provider: 'azurerm'
               command: 'validate'
+
   - stage: tfdeploy
-    condition: succeded('tfvalidate')
+    displayName: "Terraform Deployment"
     dependsOn: tfvalidate
+    condition: succeeded('tfvalidate') # Corrected spelling
     jobs:
       - job: apply
+        displayName: "Apply Terraform Configuration"
         steps:
           - task: TerraformInstaller@1
-            displayName: tfinstall
+            displayName: "Install Terraform"
             inputs:
               terraformVersion: 'latest'
           - task: TerraformTaskV4@4
-            displayName: init
+            displayName: "Initialize Terraform"
             inputs:
               provider: 'azurerm'
               command: 'init'
@@ -60,14 +64,16 @@ stages:
               backendAzureRmContainerName: '$(bkcontainer)'
               backendAzureRmKey: '$(bkstrgkey)'
           - task: TerraformTaskV4@4
-            displayName: plan
+            displayName: "Plan Terraform Deployment"
             inputs:
               provider: 'azurerm'
               command: 'plan'
+              commandOptions: "-out=tfplan"
               environmentServiceNameAzureRM: 'arialmed-sc'
           - task: TerraformTaskV4@4
-            displayName: apply
+            displayName: "Apply Terraform Deployment"
             inputs:
               provider: 'azurerm'
               command: 'apply'
+              commandOptions: "tfplan"
               environmentServiceNameAzureRM: 'arialmed-sc'
