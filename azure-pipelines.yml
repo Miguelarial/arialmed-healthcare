@@ -30,6 +30,7 @@ stages:
             inputs:
               provider: 'azurerm'
               command: 'init'
+              workingDirectory: 'terraform'  # Set working directory to Terraform folder
               backendServiceArm: 'arialmed-sc'
               backendAzureRmResourceGroupName: '$(bkstrgrg)'
               backendAzureRmStorageAccountName: '$(bkstrg)'
@@ -40,11 +41,12 @@ stages:
             inputs:
               provider: 'azurerm'
               command: 'validate'
+              workingDirectory: 'terraform'  
 
   - stage: tfdeploy
     displayName: "Terraform Deployment"
     dependsOn: tfvalidate
-    condition: succeeded('tfvalidate') # Corrected spelling
+    condition: succeeded('tfvalidate') 
     jobs:
       - job: apply
         displayName: "Apply Terraform Configuration"
@@ -58,6 +60,7 @@ stages:
             inputs:
               provider: 'azurerm'
               command: 'init'
+              workingDirectory: 'terraform'  
               backendServiceArm: 'arialmed-sc'
               backendAzureRmResourceGroupName: '$(bkstrgrg)'
               backendAzureRmStorageAccountName: '$(bkstrg)'
@@ -69,6 +72,7 @@ stages:
               provider: 'azurerm'
               command: 'plan'
               commandOptions: "-out=tfplan"
+              workingDirectory: 'terraform' 
               environmentServiceNameAzureRM: 'arialmed-sc'
           - task: TerraformTaskV4@4
             displayName: "Apply Terraform Deployment"
@@ -76,4 +80,5 @@ stages:
               provider: 'azurerm'
               command: 'apply'
               commandOptions: "tfplan"
+              workingDirectory: 'terraform'  
               environmentServiceNameAzureRM: 'arialmed-sc'
