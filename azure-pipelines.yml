@@ -76,7 +76,7 @@ stages:
             inputs:
               provider: 'azurerm'
               command: 'plan'
-              commandOptions: "-out=tfplan -lock-timeout=10m"
+              commandOptions: "-out=tfplan"
               workingDirectory: 'terraform' 
               environmentServiceNameAzureRM: 'arialmed-sc'
           - task: TerraformTaskV4@4
