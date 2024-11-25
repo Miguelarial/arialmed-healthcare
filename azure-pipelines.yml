@@ -3,13 +3,16 @@
 # Add steps that build, run tests, deploy, and more:
 # https://aka.ms/yaml
 
-trigger: none
+trigger:
+  branches:
+    include:
+      - main  # Automatically triggers the pipeline for commits to the 'main' branch
 
 pool:
   vmImage: ubuntu-latest
 
 variables:
-  - group: ArialmedEnvironmentVariables # Includes the variable group containing API keys and secrets
+  - group: ArialmedEnvironmentVariables  # Created a new variable group
   - name: bkstrgrg
     value: 'arialmed-backend'
   - name: bkstrg
@@ -20,8 +23,28 @@ variables:
     value: 'terraform.tfstate'
 
 stages:
+  - stage: InstallNodeAndDependencies
+    displayName: "Install Node.js and Dependencies"
+    jobs:
+      - job: SetupEnvironment
+        displayName: "Set up Node.js and Build App"
+        steps:
+          - task: NodeTool@0
+            displayName: "Install Node.js (v18)"
+            inputs:
+              versionSpec: '18'
+
+          - script: |
+              npm ci
+            displayName: "Install Dependencies"
+
+          - script: |
+              npm run build
+            displayName: "Build Application"
+
   - stage: tfvalidate
     displayName: "Terraform Validation"
+    dependsOn: InstallNodeAndDependencies
     jobs:
       - job: validate
         displayName: "Validate Terraform Configuration"
@@ -30,18 +53,19 @@ stages:
             displayName: "Install Terraform"
             inputs:
               terraformVersion: 'latest'
+
           - task: TerraformTaskV4@4
             displayName: "Initialize Terraform"
             inputs:
               provider: 'azurerm'
               command: 'init'
-              workingDirectory: 'terraform' # Ensure this points to your Terraform directory
+              workingDirectory: 'terraform'
               backendServiceArm: 'arialmed-sc'
               backendAzureRmResourceGroupName: '$(bkstrgrg)'
               backendAzureRmStorageAccountName: '$(bkstrg)'
               backendAzureRmContainerName: '$(bkcontainer)'
               backendAzureRmKey: '$(bkstrgkey)'
-              environmentServiceNameAzureRM: 'arialmed-sc' # Uses variable group for secrets
+
           - task: TerraformTaskV4@4
             displayName: "Validate Terraform"
             inputs:
@@ -61,6 +85,7 @@ stages:
             displayName: "Install Terraform"
             inputs:
               terraformVersion: 'latest'
+
           - task: TerraformTaskV4@4
             displayName: "Initialize Terraform"
             inputs:
@@ -72,7 +97,7 @@ stages:
               backendAzureRmStorageAccountName: '$(bkstrg)'
               backendAzureRmContainerName: '$(bkcontainer)'
               backendAzureRmKey: '$(bkstrgkey)'
-              environmentServiceNameAzureRM: 'arialmed-sc'
+
           - task: TerraformTaskV4@4
             displayName: "Plan Terraform Deployment"
             inputs:
@@ -81,6 +106,7 @@ stages:
               commandOptions: "-out=tfplan -lock-timeout=10m -detailed-exitcode"
               workingDirectory: 'terraform'
               environmentServiceNameAzureRM: 'arialmed-sc'
+
           - task: TerraformTaskV4@4
             displayName: "Apply Terraform Deployment"
             inputs:
