@@ -9,7 +9,7 @@ pool:
   vmImage: ubuntu-latest
 
 variables:
-  - group: ArialmedEnvironmentVariables # Created a new variable group
+  - group: ArialmedEnvironmentVariables # Includes the variable group containing API keys and secrets
   - name: bkstrgrg
     value: 'arialmed-backend'
   - name: bkstrg
@@ -19,7 +19,7 @@ variables:
   - name: bkstrgkey
     value: 'terraform.tfstate'
 
-stages: 
+stages:
   - stage: tfvalidate
     displayName: "Terraform Validation"
     jobs:
@@ -35,23 +35,24 @@ stages:
             inputs:
               provider: 'azurerm'
               command: 'init'
-              workingDirectory: 'terraform'  # Set working directory to Terraform folder
+              workingDirectory: 'terraform' # Ensure this points to your Terraform directory
               backendServiceArm: 'arialmed-sc'
               backendAzureRmResourceGroupName: '$(bkstrgrg)'
               backendAzureRmStorageAccountName: '$(bkstrg)'
               backendAzureRmContainerName: '$(bkcontainer)'
               backendAzureRmKey: '$(bkstrgkey)'
+              environmentServiceNameAzureRM: 'arialmed-sc' # Uses variable group for secrets
           - task: TerraformTaskV4@4
             displayName: "Validate Terraform"
             inputs:
               provider: 'azurerm'
               command: 'validate'
-              workingDirectory: 'terraform'  
+              workingDirectory: 'terraform'
 
   - stage: tfdeploy
     displayName: "Terraform Deployment"
     dependsOn: tfvalidate
-    condition: succeeded('tfvalidate') 
+    condition: succeeded('tfvalidate')
     jobs:
       - job: apply
         displayName: "Apply Terraform Configuration"
@@ -65,19 +66,20 @@ stages:
             inputs:
               provider: 'azurerm'
               command: 'init'
-              workingDirectory: 'terraform'  
+              workingDirectory: 'terraform'
               backendServiceArm: 'arialmed-sc'
               backendAzureRmResourceGroupName: '$(bkstrgrg)'
               backendAzureRmStorageAccountName: '$(bkstrg)'
               backendAzureRmContainerName: '$(bkcontainer)'
               backendAzureRmKey: '$(bkstrgkey)'
+              environmentServiceNameAzureRM: 'arialmed-sc'
           - task: TerraformTaskV4@4
             displayName: "Plan Terraform Deployment"
             inputs:
               provider: 'azurerm'
               command: 'plan'
-              commandOptions: "-out=tfplan -lock-timeout=10m -detailed-exitcode -debug"
-              workingDirectory: 'terraform' 
+              commandOptions: "-out=tfplan -lock-timeout=10m -detailed-exitcode"
+              workingDirectory: 'terraform'
               environmentServiceNameAzureRM: 'arialmed-sc'
           - task: TerraformTaskV4@4
             displayName: "Apply Terraform Deployment"
@@ -85,5 +87,5 @@ stages:
               provider: 'azurerm'
               command: 'apply'
               commandOptions: "tfplan"
-              workingDirectory: 'terraform'  
+              workingDirectory: 'terraform'
               environmentServiceNameAzureRM: 'arialmed-sc'
